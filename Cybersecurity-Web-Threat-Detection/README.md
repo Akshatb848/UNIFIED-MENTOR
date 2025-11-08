@@ -2,125 +2,124 @@
 
 **Author:** Akshat Banga  
 **Affiliation:** University of Southampton  
-**Keywords:** Cybersecurity, Web Traffic Analysis, EDA, Isolation Forest, Anomaly Detection, Feature Engineering  
+**Keywords:** Cybersecurity, Web Traffic Analysis, EDA, Isolation Forest, LSTM Autoencoder, Anomaly Detection, Feature Engineering  
 
 ---
 
 ## 📘 Overview
-This repository presents a comprehensive data-driven and theoretical analysis of **suspicious web traffic interactions** using **Exploratory Data Analysis (EDA)** and **Isolation Forest-based anomaly detection**.  
-The project builds a robust feature-engineered model to identify irregular web session patterns from CloudWatch-like telemetry data.  
-It integrates statistical theory, information entropy principles, and unsupervised learning paradigms to demonstrate the interpretability and mathematical soundness of network anomaly detection systems.
+This repository presents a comprehensive analysis of **suspicious web traffic interactions** using:
+- **Exploratory Data Analysis (EDA)**
+- **Isolation Forest (Baseline Unsupervised Model)**
+- **LSTM Autoencoder (Temporal Deep Learning Model)**
+
+Initially, the project centered around **feature-engineered anomaly detection**, establishing theoretical grounding through entropy-driven outlier scoring.  
+Subsequently, based on model evaluation insights and instructor expectations, the project was **extended to capture temporal attack evolution** via sequence-based deep learning.
 
 ---
 
-## 🧩 Research Motivation
-Modern web infrastructures generate massive telemetry logs from virtual networks, often containing latent indicators of cyber threats such as DDoS, injection attempts, or reconnaissance.  
-Traditional supervised intrusion detection systems fail in zero-day or low-frequency anomalies.  
-This study employs **feature engineering + unsupervised modeling** to address this gap, guided by:
-- Heavy-tailed network traffic theory  
-- Entropy-based anomaly detection (Isolation Forest)  
-- Empirical EDA on byte-level and rate-based session attributes  
+## 🔍 Why This Project Matters
+Traditional intrusion detection often fails when:
+- Attack patterns are **low-frequency** (rare)
+- Threat behavior is **dynamic or evolving**
+- Labeled attack signatures are **not available**
+
+This pipeline focuses on **unsupervised anomaly detection**, making it resilient in **zero-day** and **sparse-event** scenarios.
 
 ---
 
-## ⚙️ Methodology
+## 🧭 Methodology Overview
 
-### 1. Data Source
-- **Dataset:** CloudWatch Web Traffic Logs (282 records × 16 columns)
-- **Core Attributes:** `bytes_in`, `bytes_out`, `protocol`, `src_ip_country_code`, `session_duration_s`, `detection_types`
+### 1) Data Source
+CloudWatch-style web telemetry logs consisting of session-level network statistics:
+- `bytes_in`, `bytes_out`, `session_duration_s`, `status`
+- `src_ip`, `dst_ip`, and behavioral indicators such as `req_count` and `is_waf_rule`
 
-### 2. Data Preprocessing
-- Timestamp parsing (`creation_time`, `end_time`)  
-- Normalization and schema standardization  
-- Missing value handling and type conversion  
+### 2) Feature Engineering (Enhanced)
+| Feature | Purpose |
+|--------|---------|
+| `in_rate_bps`, `out_rate_bps`, `total_rate_bps` | Throughput normalization |
+| `in_out_ratio`, `bytes_diff` | Traffic asymmetry (exfiltration signal) |
+| `req_per_min`, `bytes_per_sec` | Session behavior density |
+| `hour`, `is_error` | Contextual metadata |
 
-### 3. Feature Engineering
-Derived variables for analytical richness:
-| Feature | Description |
-|----------|-------------|
-| `session_duration_s` | Session lifetime (end_time - creation_time) |
-| `total_bytes` | Sum of inbound and outbound bytes |
-| `in_out_ratio` | Asymmetry measure between incoming and outgoing traffic |
-| `in_rate_bps`, `out_rate_bps`, `total_rate_bps` | Normalized transmission rates |
-| `hour` | Temporal feature representing time of day |
-
-### 4. Anomaly Detection
-- **Model:** Isolation Forest (Liu et al., 2008)  
-- **Parameters:** 300 estimators, contamination = 0.05  
-- **Output:** Binary anomaly classification (`iso_anomaly` = 1 indicates anomalous session)
++ Additional **data consistency fixes** were implemented to:
+- Correct missing values
+- Unify time formats
+- Prevent feature leakage across model stages
 
 ---
 
-## 📊 Exploratory Data Analysis (EDA)
+## 🧪 Baseline Model: Isolation Forest
 
-Key findings from distributional and correlation analysis:
+### ✅ Improvements Done (Important)
+| Issue Before Fixes | Resolution Applied |
+|--------------------|------------------|
+| Train/Test leakage due to random splits | **Time-aware chronological splitting** |
+| Unstable anomaly scoring | **Threshold calibrated on TRAIN scores only** |
+| Test set sometimes single-class | **Automatic stratified evaluation fallback** |
+| Missing feature standardization | **RobustScaler with 5–95% quantile range** |
 
-| Observation | Theoretical Link |
-|--------------|------------------|
-| Heavy-tailed distributions of `bytes_in` and `bytes_out` | Pareto-like network traffic behavior |
-| High correlation among rate-based features | Multicollinearity in throughput space |
-| Bursty, clustered temporal patterns | Non-Poissonian request arrivals |
-| 5.32% anomaly rate detected | Aligns with sparse-event models in cybersecurity |
-
-### Figures
-1. **Distribution of Bytes In** — Right-skewed heavy tail  
-2. **Distribution of Bytes Out** — Asymmetric flow pattern  
-3. **Protocol Frequency** — HTTPS dominance  
-4. **Top Source Country Codes** — US & CA major contributors  
-5. **Temporal Plots** — Bursty inbound/outbound byte progression  
-6. **Correlation Heatmap** — High linear dependence among traffic rates  
-7. **Anomaly Scatterplot** — Outliers indicating suspicious sessions  
-
----
-
-## 🧠 Theoretical Analysis
-The project mathematically models anomaly detection through:
-- **Heavy-Tailed Distribution Theory:** Describing byte flow irregularities  
-- **Covariance Matrix (ρ):** Quantifying multicollinearity in rate variables  
-- **Isolation Forest Formulation:**
-  \[
-  s(x, n) = 2^{-E(h(x))/c(n)}
-  \]
-  where *E(h(x))* is the expected path length, and *c(n)* represents average path depth for *n* samples.  
-  Lower values of *E(h(x))* correspond to higher anomaly probability, aligning with entropy minimization principles.
-
----
-
-## 📈 Results Summary
+### 🎯 Model Outcome After Fixes
 | Metric | Value | Interpretation |
-|---------|--------|----------------|
-| **Dataset Size** | 282 rows × 25 features | Moderate, structured telemetry data |
-| **Anomaly Rate** | 5.32% (15 sessions) | Within theoretical bounds |
-| **Dominant Protocol** | HTTPS | Secure web interactions dominate |
-| **Strongest Correlation** | `total_rate_bps` ↔ `in_rate_bps` (ρ ≈ 0.92) | Confirms rate dependency |
+|--------|-------|---------------|
+| Train Anomaly Rate | **~5.33%** | Matches theoretical contamination target |
+| Test Anomaly Rate | **~15.79%** | Indicates real anomaly clustering in later window |
+| Precision | **High** | Model flags only confident anomalies |
+| Recall | **Expectedly Low** | Sparse-event detection behavior |
+
+### 🧾 Example Top Anomaly Observations
+- High inbound HTTPS flows
+- Asymmetric data transfer (exfiltration-like patterns)
+- Bursty access sessions across repeating source IPs
 
 ---
 
-## 📚 Conclusion
-The integration of **feature engineering**, **EDA**, and **Isolation Forest theory** validated the hypothesis that high-volume network logs exhibit statistically predictable anomaly distributions.  
-The model achieves interpretability through mathematically grounded metrics and aligns with theoretical network burst dynamics.
+## 🧠 Extended Model: LSTM Autoencoder (Temporal Analysis)
+To model **attack evolution over time**, we introduced:
+- Sliding window time-series sequences
+- Encoder-decoder reconstruction loss scoring
+- Dynamic anomaly thresholding
 
-### 🔮 Future Work
-- Implement LSTM Autoencoders for temporal sequence anomaly detection  
-- Extend feature set with rolling-window rates and entropy-based indicators  
-- Develop a hybrid **Isolation-GAN** for semi-supervised threat modeling  
+### 🎯 Advantage Over Isolation Forest
+| Factor | Isolation Forest | LSTM Autoencoder |
+|--------|-----------------|-----------------|
+| Considers single session only | ✅ | ❌ |
+| Considers sequence patterns | ❌ | ✅ |
+| Detects gradual / low-rate attacks | Partial | Strong |
+| Interpretability | High | Medium |
+
+The LSTM model allowed detection of:
+- **Slow-exfiltration**
+- **Beaconing attempts**
+- **Layered probe phases**
 
 ---
 
-## 🧾 References
-1. F. T. Liu, K. M. Ting, and Z.-H. Zhou, *“Isolation Forest,”* Proc. IEEE ICDM, 2008.  
-2. W. McKinney, *“Data Structures for Statistical Computing in Python,”* PyData Conf., 2010.  
-3. C. Bishop, *Pattern Recognition and Machine Learning,* Springer, 2006.  
-4. AWS Documentation, *CloudWatch Logs and Network Telemetry Insights,* 2024.  
+## 📊 Results Comparison
+
+| Stage | Detection Strength | Key Insight |
+|------|-------------------|-------------|
+| **Before Fixes** | Weak interpretability, unstable score distribution | Threshold leakage impacted reliability |
+| **After Isolation Forest Fixes** | Stronger anomaly precision, cleaner scoring | Outliers aligned with realistic threat behavior |
+| **LSTM Autoencoder Model** | Captured temporal threat waves | Detected multi-step attacks invisible to static models |
+
+---
+
+## 🧾 Conclusion
+This project validates that **robust feature engineering + leakage-safe unsupervised modeling** can reliably detect web anomalies even without labels.  
+The introduction of the **LSTM Autoencoder** strengthens capability to detect **long-horizon adversarial behavior**.
+
+---
+
+## 🔮 Future Enhancements
+- Ensemble scoring: IF + Autoencoder + One-Class SVM
+- Real-time deployment on Kafka + Spark Streaming
+- Dashboard visualization using Kibana or Grafana
 
 ---
 
 ## 🖥️ How to Run the Project
 
-### ▶ On Google Colab
-1. Upload the following files:
-   - `Cybersecurity_Web_Threats_Colab.ipynb`
-   - `CloudWatch_Traffic_Web_Attack.csv`
-2. Adjust the dataset path:
-   ```python
-   DATA_PATH = "/content/CloudWatch_Traffic_Web_Attack.csv"
+### On Google Colab
+```python
+DATA_PATH = "/content/processed_web_threats.csv"
