@@ -1,0 +1,19 @@
+# Libraries imported by the notebooks in this repository.
+# Notebooks were executed with Python 3.12 (3.12.9 / 3.12.12).
+
+numpy
+pandas
+matplotlib
+scipy
+joblib
+# >=1.2 needed for OneHotEncoder(sparse_output=...) and CalibratedClassifierCV(estimator=...)
+scikit-learn>=1.2
+
+# Optional: tcs-stock-data (boosters, LSTM) and personalised-healthcare-recommendation (MLP).
+# The notebooks skip these blocks if the packages are missing.
+xgboost
+catboost
+tensorflow
+
+# To open and run the notebooks
+jupyterlab

@@ -3,15 +3,22 @@
 This project focuses on forecasting **Tata Consultancy Services (TCS)** stock prices using a practical, well-structured data science workflow.  
 The goal is to understand price behaviour, quantify patterns, and build a model that generalises reliably, avoiding overfitting and data leakage.
 
-This repository includes:
-- Executed **Jupyter Notebook**
-- Full **research-style PDF report with figures**
-- Visual EDA insights and model evaluation outputs
+This folder includes:
+- Executed **Jupyter Notebook** (outputs and figures embedded)
+- Research-style **PDF report with figures**
 
 ---
 
 ## 📂 Project Structure
 
+```
+tcs-stock-data/
+├─ TCS_Stock_Project (2).ipynb                 # executed notebook (all results below come from here)
+├─ TCS_Stock_Analysis_Report_with_Figures.pdf  # report with figures
+└─ README.md
+```
+
+The raw CSV (`TCS_stock_history.csv`, 4,463 daily rows, 2002-08-12 to 2021-09-30) is **not** included; the notebook reads it from a local path set in `CSV_PATH`.
 
 ---
 
@@ -25,32 +32,19 @@ The workflow includes:
 | Data Pre-processing | Cleaning, date handling, forward filling missing values |
 | Exploratory Data Analysis | Understanding returns, volatility, volume behaviour |
 | Feature Engineering | Lags, rolling statistics, RSI, MACD, ATR, calendar effects |
-| Modeling | Ridge Regression, Random Forest, CatBoost (best performer) |
-| Evaluation | RMSE, MAE, MAPE, R², Directional Accuracy |
+| Modeling | RidgeCV (best performer), Random Forest, XGBoost, CatBoost, small LSTM |
+| Evaluation | 5-fold `TimeSeriesSplit` CV + final chronological hold-out (last 20%); RMSE, MAE, MAPE, R², Directional Accuracy |
 
 ---
 
 ## 📊 Exploratory Data Analysis (EDA)
 
-### 1. TCS Closing Price Trend
-Shows the overall movement of stock value over the observed period.
+Figures are embedded in the notebook outputs and in `TCS_Stock_Analysis_Report_with_Figures.pdf` (there is no separate `images/` folder).
 
-![Close Price](images/1_Close_Price.png)
-
-### 2. Trading Volume Over Time
-Captures liquidity spikes and market activity patterns.
-
-![Volume](images/2_Trading_Volume.png)
-
-### 3. Distribution of Daily Returns
-Reveals heavy-tailed behaviour and volatility clusters.
-
-![Returns Distribution](images/3_Returns_Distribution.png)
-
-### 4. Autocorrelation of Returns (Lags 1–20)
-Indicates that dependencies in returns weaken quickly → requiring engineered features.
-
-![Autocorrelation](images/4_Autocorrelation.png)
+1. **Closing price trend** — overall movement of the stock over 2002–2021.
+2. **Trading volume over time** — liquidity spikes and activity patterns.
+3. **Distribution of daily returns** — heavy-tailed behaviour.
+4. **Autocorrelation of returns (lags 1–20)** — dependencies in returns weaken quickly.
 
 ---
 
@@ -67,38 +61,40 @@ Indicates that dependencies in returns weaken quickly → requiring engineered f
 
 ## 🤖 Model Training & Selection
 
-Models compared:
-- **Ridge Regression** → baseline linear model
-- **Random Forest Regressor**
-- **CatBoost Regressor** ✅ **best performer**
+Target: next-day `Close`. Models compared with 5-fold `TimeSeriesSplit` (mean over folds, sorted by RMSE):
+
+| Model | MAE | RMSE | MAPE % | R² | Directional Acc. % |
+|---|---|---|---|---|---|
+| **RidgeCV** ✅ best | 13.70 | 18.61 | 2.07 | **0.989** | 51.3 |
+| Random Forest | 227.03 | 316.98 | 19.03 | −1.49 | 50.8 |
+| XGBoost | 237.81 | 327.76 | 19.87 | −1.65 | 50.1 |
+| CatBoost | 260.07 | 341.80 | 22.33 | −1.94 | 51.4 |
+
+The tree ensembles have negative R², most likely because they cannot extrapolate beyond the price range seen in training, and the price trends strongly upward over time.
+
+**Final hold-out (last 20% of the timeline, RidgeCV):** MAE 27.50, RMSE 38.05, MAPE 1.23%, R² 0.996, directional accuracy 51.2%.
+
+**LSTM (Close-only, 30-day lookback, 12 epochs, unscaled inputs):** MAE 2283, RMSE 2354, MAPE 99.2% — effectively failed to fit and is not a usable model.
 
 ### 📈 Actual vs Predicted Comparison
+The hold-out actual-vs-predicted plot for RidgeCV is in the notebook and PDF report.
 
-![Actual vs Predicted](images/5_Actual_vs_Predicted.png)
-
-- Predictions follow overall trend well.
-- Model is robust to noise, avoids overfitting sharp fluctuations.
-
-### 🔥 Feature Importance (CatBoost)
-
-![Feature Importance](images/6_Feature_Importance.png)
-
-Key Influences:
-- **Lagged returns**
-- **Rolling means / rolling volatility**
-- **RSI & MACD momentum indicators**
+### 🔥 Feature Importance (permutation importance, RidgeCV, hold-out)
+Top features: current `Close`, `Close_lag_1`, `EMA_5`, `RollMin_5`, `EMA_20`, `RollMax_5`, `EMA_10`, `SMA_5` — i.e. the most recent price levels dominate.
 
 ---
 
 ## 📌 Results Summary
 
-| Metric | Performance |
-|-------|-------------|
-| RMSE | ~15–20 |
-| MAE | Stable across test splits |
-| Directional Accuracy | **~60%** (statistically meaningful in stock forecasting) |
+| Metric (RidgeCV) | CV mean | Hold-out |
+|-------|-------------|---------|
+| RMSE | 18.61 | 38.05 |
+| MAE | 13.70 | 27.50 |
+| MAPE | 2.07% | 1.23% |
+| R² | 0.989 | 0.996 |
+| Directional Accuracy | 51.3% | 51.2% |
 
-This means the model **does not attempt unrealistic prediction precision**, but instead focuses on **trend understanding and directional correctness**, which is **valuable in finance**.
+**Interpretation.** The high R² mostly reflects that next-day price is very close to today's price (today's `Close` is a feature). Directional accuracy of ~51% is essentially a coin flip, so the model does **not** predict up/down moves better than chance. A naive "tomorrow = today" baseline was not computed in the notebook and would be the appropriate comparison.
 
 ---
 
@@ -108,6 +104,9 @@ This means the model **does not attempt unrealistic prediction precision**, but 
 git clone https://github.com/Akshatb848/UNIFIED-MENTOR.git
 cd UNIFIED-MENTOR/tcs-stock-data
 
-conda activate your_environment_name
+pip install -r ../requirements.txt
 jupyter lab
+```
+
+Set `CSV_PATH` in the second code cell to your local copy of `TCS_stock_history.csv`. The notebook was executed with Python 3.12.9, NumPy 2.0.2, pandas 2.2.3, scikit-learn 1.5.2; XGBoost, CatBoost and TensorFlow are optional (their blocks are skipped if not installed).
 
