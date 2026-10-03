@@ -55,10 +55,19 @@ pip install -r requirements.txt
    - Run expanded hyperparameter search
    - Save the tuned pipeline in `artifacts/`
 
-## 📊 Results (from sample runs)
-> Results vary by dataset. In reported runs, accuracies ranged **~31–55%** with macro-F1 **~0.15–0.17** and weighted-F1 **~0.43–0.50** due to strong class imbalance and label subjectivity.
+## 📊 Results (from the executed notebook)
+Data: 8,469 tickets × 17 columns; stratified 80/20 split (6,775 train / 1,694 validation). Labels: 6 classes, ratings `1`–`5` (~6.5% each) and **`<NA>` (67.3%, tickets with no rating, kept as its own class)**.
 
-If your data is cleaner/more balanced, TF–IDF + linear models can approach **70–75%** accuracy with macro-F1 near **0.70**.
+| Model | Accuracy | Macro-F1 | Weighted-F1 |
+|---|---|---|---|
+| LinearSVC (balanced) | 0.553 | 0.158 | 0.508 |
+| LogisticRegression SAGA (balanced) | 0.316 | 0.161 | 0.373 |
+| SGD hinge (balanced), selected by macro-F1 | 0.448 | 0.164 | 0.460 |
+| SGD after `RandomizedSearchCV` (30 iters, best CV macro-F1 0.175) | 0.401 | 0.156 | 0.433 |
+
+Interpretation: per-class F1 for ratings 1–5 is 0.03–0.12, i.e. the text carries almost no signal about the rating, and every model scores **below the 67.3% accuracy of always predicting `<NA>`**. Macro-F1 ≈ 0.16 is close to chance for 6 classes.
+
+The notebook's original target of 70–75% accuracy / macro-F1 ≈ 0.70 was **not** reached, and there is no evidence in this repo that it is reachable on this dataset.
 
 ## 🧪 Inference with the Saved Pipeline
 ```python
@@ -75,7 +84,7 @@ print(pred)
 
 ## 📈 Future Work
 - Integrate **structured features** (e.g., `Ticket Channel`, `Ticket Priority`, SLA times) via `ColumnTransformer` alongside text.
-- If compute permits, move to **transformer-based** models (DistilBERT/BERT). These often add **5–10%** macro-F1 but are CPU/GPU intensive.
+- If compute permits, try **transformer-based** models (DistilBERT/BERT); not attempted in this project, and given how little signal the text carries here, gains are uncertain.
 
 ## 🛠️ GitHub: How to publish
 ```bash
