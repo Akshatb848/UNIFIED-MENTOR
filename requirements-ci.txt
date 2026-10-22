@@ -1,0 +1,3 @@
+# Minimal dependencies for the repository checks in tests/ (stdlib-only tests).
+# The notebooks themselves use requirements.txt.
+pytest==9.0.3

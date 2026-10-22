@@ -1,5 +1,16 @@
 # Unified Mentor — Data Science Internship Projects
 
+**Four end-to-end, notebook-based data science projects — forecasting, NLP classification, tabular classification and anomaly detection — with results reported exactly as the executed notebooks produced them, including where the models fall short.**
+
+[![CI](https://github.com/Akshatb848/UNIFIED-MENTOR/actions/workflows/ci.yml/badge.svg)](https://github.com/Akshatb848/UNIFIED-MENTOR/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)
+![Jupyter](https://img.shields.io/badge/Jupyter-notebooks-orange.svg)
+
+![Figures from the executed notebooks](docs/images/notebook-outputs.png)
+
+<sub>Four figures taken directly from the saved outputs of the executed notebooks in this repo (not re-generated).</sub>
+
 Four notebook-based data science projects completed during a data science internship at **Unified Mentor**: stock price forecasting, support-ticket text classification, blood-donation prediction, and web-traffic anomaly detection. Each sub-folder contains a Jupyter notebook, a PDF report and its own README. The results below are copied from the **executed notebook outputs**; nothing here has been re-run or tuned since.
 
 ## Projects
@@ -10,6 +21,21 @@ Four notebook-based data science projects completed during a data science intern
 | [`csat-text-classification`](csat-text-classification/) | Predict customer-satisfaction rating from ticket text | TF-IDF (word + char n-grams) + LinearSVC / LogisticRegression / SGD, randomized search | Customer support tickets, 8,469 rows; CSV not included | Accuracy 0.32–0.55, **macro-F1 ≈ 0.16** (tuned SGD: acc 0.40, macro-F1 0.156) |
 | [`personalised-healthcare-recommendation`](personalised-healthcare-recommendation/) | Predict whether a blood donor will donate again | Engineered ratios; LogReg, RF, Gradient Boosting, Keras MLP, calibration, soft voting | UCI Blood Transfusion (`blood.csv`), 748 rows, 4 features | Soft vote: **accuracy 0.766, macro-F1 0.674, ROC-AUC 0.768** (94-row test set) |
 | [`Cybersecurity-Web-Threat-Detection`](Cybersecurity-Web-Threat-Detection/) | Flag suspicious web-traffic sessions | Traffic features + Isolation Forest (unsupervised) | CloudWatch web-traffic log, 282 rows; raw CSV not included | Isolation Forest flagged **15 / 282 (5.32%)**, set by `contamination=0.05`; no labels to evaluate |
+
+## How each project is built
+
+```mermaid
+flowchart LR
+    D[Raw dataset<br/>CSV] --> E[EDA + cleaning]
+    E --> F[Feature engineering<br/>lags & indicators · TF-IDF n-grams ·<br/>RFM ratios · traffic rates]
+    F --> M[Models<br/>linear · tree ensembles · boosting ·<br/>small neural nets · Isolation Forest]
+    M --> V[Validation<br/>time-series CV · stratified split ·<br/>calibration · baselines]
+    V --> R[Report<br/>notebook outputs + PDF]
+```
+
+## Tech stack
+
+Python 3.12 · pandas · NumPy · scikit-learn · matplotlib · SciPy · XGBoost / CatBoost / TensorFlow-Keras (optional blocks) · Jupyter
 
 ## Limitations (read before citing these results)
 
@@ -35,3 +61,32 @@ jupyter lab
 - `csat-text-classification/` also has its own pinned `requirements.txt` and `environment.yml`.
 - Before running, set the data path in each notebook (`CSV_PATH`, `DATA_PATH`, or the CSAT prompt) to your local copy of the dataset. See each sub-project README for details.
 - The `Cybersecurity_Web_Threats_Colab.ipynb` notebook is written for Google Colab (`/content/...` paths).
+
+## Repository checks
+
+```bash
+pip install -r requirements-ci.txt
+pytest -q
+```
+
+`tests/test_repository.py` is a lightweight, stdlib-only check (no ML stack): every notebook is valid nbformat-4 JSON and every code cell parses, the four notebooks reported as executed contain saved outputs, and the bundled datasets match the figures quoted above (748 rows in `blood.csv`; 15 of 282 sessions flagged in `processed_web_threats.csv`, all with a single label). It does **not** re-run the notebooks. CI runs it on every push and pull request.
+
+## Project structure
+
+```
+├── tcs-stock-data/                          # notebook + PDF report + README
+├── csat-text-classification/                # notebook + PDF report + README + pinned env
+├── personalised-healthcare-recommendation/  # notebook + PDF report + README + blood.csv
+├── Cybersecurity-Web-Threat-Detection/      # 2 notebooks + PDF + README + processed CSV
+├── docs/images/                             # README figure
+├── tests/                                   # repository integrity checks
+└── requirements.txt                         # libraries imported by the notebooks
+```
+
+## License
+
+[MIT](LICENSE) © 2026 Akshat Banga (`csat-text-classification/` also carries its own MIT license).
+
+## Author
+
+**Akshat Banga** — [github.com/Akshatb848](https://github.com/Akshatb848)
